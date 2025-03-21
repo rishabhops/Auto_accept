@@ -1,4 +1,3 @@
-#.this version have a ability to send pictures in dms
 import os
 import json
 import logging
@@ -8,14 +7,13 @@ from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, ChatMemberUpdated, ChatJoinRequest
 from pyrogram.errors import FloodWait
 
-from vars import B_TOKEN, API, API_HASH, BOT_USERNAME, DB_URI, ownerid
-from rishabh.users_db import get_served_users, add_served_user
-from async_mongo import AsyncClient
+from vars import B_TOKEN, API, API_HASH, BOT_USERNAME, ownerid
 
 # Constants
 LOGO_URL = "https://graph.org/file/98a15d8ecbd89eb30f7aa.jpg"
 USER_DATA_FILE = "user_data.json"
 GROUP_DATA_FILE = "group_data.json"
+SERVED_USERS_FILE = "served_users.json"
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -29,18 +27,7 @@ thanos = Client(
     api_hash=API_HASH
 )
 
-# Connect to MongoDB
-try:
-    mongo = AsyncClient(DB_URI)
-    db = mongo["Assistant"]
-    logger.info("Connected to your Mongo Database.")
-except Exception as e:
-    logger.error(f"Failed to connect to your Mongo Database: {e}")
-    exit(1)
-
-usersdb = db["users"]
-
-# Helper functions
+# Helper functions for local database
 def load_data(file_path):
     if os.path.exists(file_path):
         with open(file_path, "r") as file:
@@ -51,13 +38,31 @@ def save_data(data, file_path):
     with open(file_path, "w") as file:
         json.dump(data, file, indent=4)
 
-user_data = load_data(USER_DATA_FILE)
-group_data = load_data(GROUP_DATA_FILE)
-
 def add_to_data(data_list, new_entry, file_path):
     if new_entry not in data_list:
         data_list.append(new_entry)
         save_data(data_list, file_path)
+
+# Load initial data
+user_data = load_data(USER_DATA_FILE)
+group_data = load_data(GROUP_DATA_FILE)
+served_users = load_data(SERVED_USERS_FILE)
+
+# Functions to replace MongoDB operations
+async def add_served_user(user_id):
+    """Add a user to the served users list"""
+    user_id = str(user_id)  # Convert to string for JSON compatibility
+    user_data = {"user_id": user_id}
+    
+    # Check if user already exists in served_users
+    if not any(user["user_id"] == user_id for user in served_users):
+        served_users.append(user_data)
+        save_data(served_users, SERVED_USERS_FILE)
+        logger.info(f"Added user {user_id} to served users.")
+
+async def get_served_users():
+    """Get all served users"""
+    return served_users
 
 # Handlers
 @thanos.on_message(filters.private & filters.command(["start"]))
@@ -70,13 +75,6 @@ async def start(client: Client, message: Message):
             [InlineKeyboardButton("ᴀᴅᴅ ᴍᴇ", url=f"https://t.me/{BOT_USERNAME}?startgroup=true")]
         ]
 
-        # Test if the bot can send a simple text message
-        # await client.send_message(
-        #    chat_id=message.chat.id,
-        #    text="Bot is working! This is a test message."
-        # )
-
-        # Uncomment this part after confirming the bot can send messages
         await client.send_photo(
             chat_id=message.chat.id,
             photo=LOGO_URL,
@@ -90,7 +88,7 @@ async def start(client: Client, message: Message):
         await message.reply_text(f"An error occurred: {e}")
 
 @thanos.on_chat_member_updated(filters.group)
-async def welcome_goodbye(client: thanos, message: ChatMemberUpdated):
+async def welcome_goodbye(client: Client, message: ChatMemberUpdated):
     try:
         new_chat_member = message.new_chat_member
         old_chat_member = message.old_chat_member
@@ -130,10 +128,18 @@ async def welcome_goodbye(client: thanos, message: ChatMemberUpdated):
         logger.error(f"Error in welcome_goodbye handler: {e}")
 
 @thanos.on_chat_join_request()
-async def autoapprove(client: thanos, message: ChatJoinRequest):
+async def autoapprove(client: Client, message: ChatJoinRequest):
     try:
         await client.approve_chat_join_request(chat_id=message.chat.id, user_id=message.from_user.id)
         logger.info(f"Approved join request for {message.from_user.first_name} in {message.chat.title}")
+
+        # Add user to served users
+        await add_served_user(message.from_user.id)
+        
+        # Add user to user data if not already there
+        user_id = message.from_user.id
+        if user_id not in user_data:
+            add_to_data(user_data, user_id, USER_DATA_FILE)
 
         personal_message = (
             f"💋𝙅𝙤𝙞𝙣 𝙁𝙤𝙧 𝙇𝙖𝙩𝙚𝙨𝙩 𝘾𝙤𝙡𝙡𝙚𝙘𝙩𝙞𝙤𝙣💋\n\n"
@@ -156,35 +162,34 @@ async def autoapprove(client: thanos, message: ChatJoinRequest):
         logger.error(f"Error in autoapprove handler: {e}")
 
 @thanos.on_message(filters.command("stats") & filters.user(ownerid))
-async def stats(client: thanos, message: Message):
+async def stats(client: Client, message: Message):
     users = len(await get_served_users())
     await message.reply_text(
-        f"<u><b>ᴄᴜʀʀᴇɴᴛ sᴛᴀᴛs ᴏғ {client.me.mention} :</b></u>\n\n➻ <b>ᴜsᴇʀs :</b> {users}\n"
+        f"ᴄᴜʀʀᴇɴᴛ sᴛᴀᴛs ᴏғ {client.me.mention} :\n\n➻ ᴜsᴇʀs : {users}\n"
     )
 
 @thanos.on_message(filters.command("broadcast") & filters.user(ownerid))
-async def broadcast(cli: thanos, message: Message):
+async def broadcast(cli: Client, message: Message):
     if message.reply_to_message:
         x = message.reply_to_message.id
         y = message.chat.id
     else:
         if len(message.command) < 2:
             return await message.reply_text(
-                "<b>ᴇxᴀᴍᴘʟᴇ </b>:\n/broadcast [ᴍᴇssᴀɢᴇ] ᴏʀ [ʀᴇᴘʟʏ ᴛᴏ ᴀ ᴍᴇssᴀɢᴇ]"
+                "ᴇxᴀᴍᴘʟᴇ :\n/broadcast [ᴍᴇssᴀɢᴇ] ᴏʀ [ʀᴇᴘʟʏ ᴛᴏ ᴀ ᴍᴇssᴀɢᴇ]"
             )
         query = message.text.split(None, 1)[1]
 
     susr = 0
-    served_users = []
-    susers = await get_served_users()
-    for user in susers:
-        served_users.append(int(user["user_id"]))
-    for i in served_users:
+    served_user_list = await get_served_users()
+    
+    for user in served_user_list:
+        user_id = int(user["user_id"])
         try:
             m = (
-                await cli.copy_message(chat_id=i, from_chat_id=y, message_id=x)
+                await cli.copy_message(chat_id=user_id, from_chat_id=y, message_id=x)
                 if message.reply_to_message
-                else await cli.send_message(i, text=query)
+                else await cli.send_message(user_id, text=query)
             )
             susr += 1
             await asyncio.sleep(0.2)
@@ -193,14 +198,14 @@ async def broadcast(cli: thanos, message: Message):
             if flood_time > 200:
                 continue
             await asyncio.sleep(flood_time)
-        except:
+        except Exception as e:
+            logger.error(f"Error sending broadcast to {user_id}: {e}")
             continue
 
     try:
-        await message.reply_text(f"<b>ʙʀᴏᴀᴅᴄᴀsᴛᴇᴅ ᴍᴇssᴀɢᴇ ᴛᴏ {susr} ᴜsᴇʀs.</b>")
+        await message.reply_text(f"ʙʀᴏᴀᴅᴄᴀsᴛᴇᴅ ᴍᴇssᴀɢᴇ ᴛᴏ {susr} ᴜsᴇʀs.")
     except:
         pass
 
 if __name__ == "__main__":
     thanos.run()
-                  
