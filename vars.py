@@ -4,14 +4,14 @@ import os
 
 
 # your bot token
-B_TOKEN = "6999255941:AAEJfdcjYo1N-BWAc1o9llCoimhX6dBPEr4"
+B_TOKEN = "5955204118:AAE54SY5sIJUXgDTsu2iNZvKWu8ibTI-x5c"
 #your api id
 API = 10248430
 # your api hash
 API_HASH = "42396a6ff14a569b9d59931643897d0d"
 # your bot username without @ like this ultron2_robot
-BOT_USERNAME = "AriseApproveBot"
+BOT_USERNAME = "HOTX_MUSIC_BOT"
 # your owner id
-ownerid = 6720082402
+ownerid = 5470956337
 #mongo db url
 DB_URI = "mongo uri"
