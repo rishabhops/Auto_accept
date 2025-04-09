@@ -116,8 +116,7 @@ async def welcome_goodbye(client: thanos, message: ChatMemberUpdated):
 
                 personal_goodbye_message = (
                     "⚠️ Sorry for the inconvenience caused\n"
-                    "🚨 You Can Request any Anime here\n"
-                    "👉 https://t.me/SonuBhaiyaBot\n"
+                    "👉 https://t.me/Tech_apex\n"
                     "🛎️ Koi bhi Help ke liye msg here ☝️"
                 )
 
@@ -136,15 +135,13 @@ async def autoapprove(client: thanos, message: ChatJoinRequest):
         logger.info(f"Approved join request for {message.from_user.first_name} in {message.chat.title}")
 
         personal_message = (
-            f"💋𝙅𝙤𝙞𝙣 𝙁𝙤𝙧 𝙇𝙖𝙩𝙚𝙨𝙩 𝘾𝙤𝙡𝙡𝙚𝙘𝙩𝙞𝙤𝙣💋\n\n"
-            "• https://discord.com/invite/5ACnAvC2et\n"
-            "• https://discord.com/invite/5ACnAvC2et\n"
-            "• https://discord.com/invite/5ACnAvC2et\n"
-            "• https://discord.com/invite/5ACnAvC2et\n\n"
-            "🎬Click Here to learn how to login in Discord\n\n"
-            "@HowToUse_Discord\n"
-            "@HowToUse_Discord\n\n"
-            "🎬डिस्कॉर्ड में लॉगइन करने का तरीका जानने के लिए यहां क्लिक करें"
+            f"ऐसे ही नहीं तुम्हारा भाई DAILY के 100k से 150K तक कमाता है 🔥 Live देख लो ख़तरनाक earning होती है ✔️\n\n"
+            "✅Total Din के Prediction Follow\nEarning 10X…. (DIRECT)📈\n\n"
+            "🤑 High Balance Huge Profit जीतना ज़्यादा बैलेंस हौगा उतना ज़्यादा प्रोफ़िट हौगा\n\n"
+            "Join Official Sureshot Channel  ✅\n"
+            "https://t.me/+0t4_pyyJ0E9kNzll\n"
+            "https://t.me/+0t4_pyyJ0E9kNzll\n\n"
+            "Registered Link 👉 https://www.in444.in/#/register?invitationCode=128664713143"
         )
 
         await client.send_photo(
